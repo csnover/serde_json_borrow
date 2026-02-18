@@ -263,6 +263,12 @@ impl From<String> for Value<'_> {
     }
 }
 
+impl<'ctx> From<Cow<'ctx, str>> for Value<'ctx> {
+    fn from(value: Cow<'ctx, str>) -> Self {
+        Value::Str(value)
+    }
+}
+
 impl<'a, T: Into<Value<'a>>> From<Vec<T>> for Value<'a> {
     fn from(val: Vec<T>) -> Self {
         Value::Array(val.into_iter().map(Into::into).collect())
@@ -390,6 +396,12 @@ mod tests {
     use std::io;
 
     use super::*;
+
+    #[test]
+    fn from_cow() {
+        let value = Value::from(Cow::Borrowed("moo"));
+        assert_eq!(value.as_str(), Some("moo"));
+    }
 
     #[test]
     fn from_serde() {
