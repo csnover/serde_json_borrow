@@ -72,7 +72,7 @@ pub enum Value<'ctx> {
     /// # use serde_json_borrow::Value;
     /// # use serde_json_borrow::ObjectAsVec;
     /// #
-    /// let v = Value::Object([("key".into(), Value::Str("value".into()))].into_iter().collect::<Vec<_>>().into());
+    /// let v = Value::Object([("key", Value::Str("value".into()))].into());
     /// ```
     Object(ObjectAsVec<'ctx>),
 }
@@ -266,6 +266,22 @@ impl<'ctx> From<Cow<'ctx, str>> for Value<'ctx> {
     }
 }
 
+impl<'ctx, T> From<T> for Value<'ctx> where T: Into<ObjectAsVec<'ctx>> {
+    fn from(value: T) -> Self {
+        Value::Object(value.into())
+    }
+}
+
+impl<'ctx, K, V> FromIterator<(K, V)> for Value<'ctx>
+where
+    K: Into<crate::KeyStrType<'ctx>>,
+    V: Into<Value<'ctx>>
+{
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        Self::Object(ObjectAsVec::from_iter(iter))
+    }
+}
+
 impl<'a, T: Into<Value<'a>>> From<Vec<T>> for Value<'a> {
     fn from(val: Vec<T>) -> Self {
         Value::Array(val.into_iter().map(Into::into).collect())
@@ -398,6 +414,26 @@ mod tests {
     fn from_cow() {
         let value = Value::from(Cow::Borrowed("moo"));
         assert_eq!(value.as_str(), Some("moo"));
+    }
+
+    #[test]
+    fn from_string() {
+        let value = Value::from(String::from("str"));
+        assert_eq!(value.as_str(), Some("str"));
+    }
+
+    #[test]
+    fn from_into_object() {
+        let value = Value::from([("a", Value::from("av")), ("b", 1.0.into())]);
+        assert_eq!(value.get("a").and_then(Value::as_str), Some("av"));
+        assert_eq!(value.get("b").and_then(Value::as_f64), Some(1.0));
+    }
+
+    #[test]
+    fn from_iter() {
+        let value = Value::from_iter([("a", Value::from("av")), ("b", 1.0.into())]);
+        assert_eq!(value.get("a").and_then(Value::as_str), Some("av"));
+        assert_eq!(value.get("b").and_then(Value::as_f64), Some(1.0));
     }
 
     #[test]

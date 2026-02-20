@@ -25,23 +25,34 @@ pub type KeyStrType<'a> = &'a str;
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectAsVec<'ctx>(pub(crate) Vec<(KeyStrType<'ctx>, Value<'ctx>)>);
 
-#[cfg(feature = "cowkeys")]
-impl<'ctx> From<Vec<(&'ctx str, Value<'ctx>)>> for ObjectAsVec<'ctx> {
-    fn from(vec: Vec<(&'ctx str, Value<'ctx>)>) -> Self {
+impl<'ctx, K, V> From<Vec<(K, V)>> for ObjectAsVec<'ctx>
+where
+    K: Into<KeyStrType<'ctx>>,
+    V: Into<Value<'ctx>>,
+{
+    fn from(vec: Vec<(K, V)>) -> Self {
         Self::from_iter(vec)
     }
 }
 
-#[cfg(not(feature = "cowkeys"))]
-impl<'ctx> From<Vec<(&'ctx str, Value<'ctx>)>> for ObjectAsVec<'ctx> {
-    fn from(vec: Vec<(&'ctx str, Value<'ctx>)>) -> Self {
-        Self(vec)
+impl<'ctx, K, V, const N: usize> From<[(K, V); N]> for ObjectAsVec<'ctx>
+where
+    K: Into<KeyStrType<'ctx>>,
+    V: Into<Value<'ctx>>
+{
+    #[inline]
+    fn from(value: [(K, V); N]) -> Self {
+        Self::from_iter(value)
     }
 }
 
-impl<'ctx> FromIterator<(&'ctx str, Value<'ctx>)> for ObjectAsVec<'ctx> {
-    fn from_iter<T: IntoIterator<Item = (&'ctx str, Value<'ctx>)>>(iter: T) -> Self {
-        Self(iter.into_iter().map(|(k, v)| (k.into(), v)).collect())
+impl<'ctx, K, V> FromIterator<(K, V)> for ObjectAsVec<'ctx>
+where
+    K: Into<KeyStrType<'ctx>>,
+    V: Into<Value<'ctx>>
+{
+    fn from_iter<T: IntoIterator<Item = (K, V)>>(iter: T) -> Self {
+        Self(iter.into_iter().map(|(k, v)| (k.into(), v.into())).collect())
     }
 }
 
@@ -313,11 +324,25 @@ mod tests {
     }
 
     #[test]
+    fn test_initialization_from_array() {
+        let obj = ObjectAsVec::from([
+            ("a", 0u64),
+            ("b", 1u64),
+            ("c", 2u64),
+        ]);
+
+        assert_eq!(obj.len(), 3);
+        assert_eq!(obj.get("a"), Some(&Value::Number(0u64.into())));
+        assert_eq!(obj.get("b"), Some(&Value::Number(1u64.into())));
+        assert_eq!(obj.get("c"), Some(&Value::Number(2u64.into())));
+    }
+
+    #[test]
     fn test_initialization_from_vec() {
         let obj = ObjectAsVec::from(vec![
-            ("a", Value::Number(0u64.into())),
-            ("b", Value::Number(1u64.into())),
-            ("c", Value::Number(2u64.into())),
+            ("a", 0u64),
+            ("b", 1u64),
+            ("c", 2u64),
         ]);
 
         assert_eq!(obj.len(), 3);

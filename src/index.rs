@@ -112,7 +112,7 @@ mod tests {
         }
         let key = String::from("key");
         let value = Value::Object(
-            vec![(key.as_str().into(), Value::Str("value".into()))].into()
+            vec![(key.as_str(), Value::Str("value".into()))].into()
         );
         assert_eq!(get_str(&value, &key), Some("value"));
     }
