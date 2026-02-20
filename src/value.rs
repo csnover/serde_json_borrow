@@ -193,8 +193,24 @@ impl<'ctx> Value<'ctx> {
         }
     }
 
+    /// If the Value is an Array, returns the associated Array. Returns None otherwise.
+    pub fn as_array_mut(&mut self) -> Option<&mut Vec<Value<'ctx>>> {
+        match self {
+            Value::Array(arr) => Some(arr),
+            _ => None,
+        }
+    }
+
     /// If the Value is an Object, returns the associated Object. Returns None otherwise.
     pub fn as_object(&self) -> Option<&ObjectAsVec<'ctx>> {
+        match self {
+            Value::Object(obj) => Some(obj),
+            _ => None,
+        }
+    }
+
+    /// If the Value is an Object, returns the associated Object. Returns None otherwise.
+    pub fn as_object_mut(&mut self) -> Option<&mut ObjectAsVec<'ctx>> {
         match self {
             Value::Object(obj) => Some(obj),
             _ => None,
@@ -409,6 +425,34 @@ mod tests {
     use std::io;
 
     use super::*;
+
+    #[test]
+    fn as_array() {
+        let value = Value::Null;
+        assert_eq!(value.as_array(), None);
+        let arr = vec![Value::from("value")];
+        let mut value = Value::from(arr.clone());
+        assert_eq!(value.as_object(), None);
+        assert_eq!(value.as_array(), Some(arr.as_slice()));
+
+        let arr = value.as_array_mut().expect("mutable array");
+        arr.push("value2".into());
+        assert_eq!(value.get(1).and_then(Value::as_str), Some("value2"));
+    }
+
+    #[test]
+    fn as_object() {
+        let value = Value::Null;
+        assert_eq!(value.as_object(), None);
+        let obj = ObjectAsVec::from([("key", "value")]);
+        let mut value = Value::from(obj.clone());
+        assert_eq!(value.as_array(), None);
+        assert_eq!(value.as_object(), Some(&obj));
+
+        let obj = value.as_object_mut().expect("mutable object");
+        obj.insert("key2", "value2");
+        assert_eq!(value.get("key2").and_then(Value::as_str), Some("value2"));
+    }
 
     #[test]
     fn from_cow() {
