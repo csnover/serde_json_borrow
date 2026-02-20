@@ -380,7 +380,7 @@ impl<'ctx> From<&'ctx serde_json::Value> for Value<'ctx> {
             serde_json::Value::Object(obj) => {
                 let mut ans = ObjectAsVec::default();
                 for (k, v) in obj {
-                    ans.insert(k.as_str(), v.into());
+                    ans.insert(k.as_str(), v);
                 }
                 Value::Object(ans)
             }

@@ -212,14 +212,20 @@ impl<'ctx> ObjectAsVec<'ctx> {
     /// This operation is linear in the size of the Vec because it potentially requires iterating
     /// through all elements to find a matching key.
     #[inline]
-    pub fn insert(&mut self, key: &'ctx str, value: Value<'ctx>) -> Option<Value<'ctx>> {
+    pub fn insert<K, V>(&mut self, key: K, value: V) -> Option<Value<'ctx>>
+    where
+        K: Into<KeyStrType<'ctx>>,
+        V: Into<Value<'ctx>>,
+    {
+        let key = key.into();
+        let value = value.into();
         for (k, v) in &mut self.0 {
             if *k == key {
                 return Some(std::mem::replace(v, value));
             }
         }
         // If the key is not found, push the new key-value pair to the end of the Vec
-        self.0.push((key.into(), value));
+        self.0.push((key, value));
         None
     }
 
