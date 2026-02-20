@@ -472,7 +472,7 @@ mod tests {
     fn test_insert_multiple_types() {
         let mut obj = ObjectAsVec::default();
         obj.insert("boolean", Value::Bool(true));
-        obj.insert("number", Value::Number(3.14.into()));
+        obj.insert("number", Value::Number(1.23.into()));
         obj.insert("string", Value::Str(Cow::Borrowed("Hello")));
         obj.insert("null", Value::Null);
 
@@ -485,7 +485,7 @@ mod tests {
         );
         assert_eq!(obj.len(), 5);
         assert_eq!(obj.get("boolean"), Some(&Value::Bool(true)));
-        assert_eq!(obj.get("number"), Some(&Value::Number(3.14.into())));
+        assert_eq!(obj.get("number"), Some(&Value::Number(1.23.into())));
         assert_eq!(obj.get("string"), Some(&Value::Str(Cow::Borrowed("Hello"))));
         assert_eq!(obj.get("null"), Some(&Value::Null));
         assert_eq!(
@@ -547,7 +547,7 @@ mod tests {
             .unwrap();
 
         // ensure that the found object matches the searched for object
-        let (key, value) = obj.get_key_value_at(idx).unwrap();
+        let (key, _) = obj.get_key_value_at(idx).unwrap();
         assert_eq!(key, "city");
     }
 }
