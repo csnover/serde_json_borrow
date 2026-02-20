@@ -13,8 +13,8 @@ use super::Value;
 /// # Examples
 ///
 /// ```
+/// # use std::borrow::Cow;
 /// # use serde_json_borrow::Value;
-/// #
 /// let json_obj = r#"
 /// {
 ///     "x": {
@@ -24,13 +24,12 @@ use super::Value;
 /// "#;
 ///
 /// let data: Value = serde_json::from_str(json_obj).unwrap();
+/// let y = data.get("x").unwrap().get("y").unwrap();
+/// assert_eq!(y.get(0), Some(&Value::Str(Cow::Borrowed("z"))));
+/// assert_eq!(y.get(1), Some(&Value::Str(Cow::Borrowed("zz"))));
+/// assert_eq!(y.get(2), None);
 ///
-/// assert_eq!(data.get("x").get("y").get(0), &Value::Str(std::borrow::Cow::Borrowed("z")));
-/// assert_eq!(data.get("x").get("y").get(1), &Value::Str(std::borrow::Cow::Borrowed("zz")));
-/// assert_eq!(data.get("x").get("y").get(2), &Value::Null);
-///
-/// assert_eq!(data.get("a"), &Value::Null);
-/// assert_eq!(data.get("a").get("b"), &Value::Null);
+/// assert_eq!(data.get("a"), None);
 /// ```
 pub trait Index: private::Sealed {
     /// Return None if the key is not already in the array or object.
@@ -102,14 +101,14 @@ mod tests {
         let value = Value::Object(
             vec![(&*key, Value::Str("value".into()))].into()
         );
-        assert_eq!(value.get(&key).as_str(), Some("value"));
-        assert_eq!(value.get(Cow::Owned("key".into())).as_str(), Some("value"));
+        assert_eq!(value.get(&key).and_then(Value::as_str), Some("value"));
+        assert_eq!(value.get(Cow::Owned("key".into())).and_then(Value::as_str), Some("value"));
     }
 
     #[test]
     fn index_lifetime() {
         fn get_str<'a>(v: &'a Value<'_>, k: &str) -> Option<&'a str> {
-            v.get(k).as_str()
+            v.get(k).and_then(Value::as_str)
         }
         let key = String::from("key");
         let value = Value::Object(
@@ -124,7 +123,7 @@ mod tests {
         let value = Value::Object(
             vec![(key.as_str(), Value::Str("value".into()))].into()
         );
-        assert_eq!(value.get(&key).as_str(), Some("value"));
-        assert_eq!(value.get(key.clone()).as_str(), Some("value"));
+        assert_eq!(value.get(&key).and_then(Value::as_str), Some("value"));
+        assert_eq!(value.get(key.clone()).and_then(Value::as_str), Some("value"));
     }
 }

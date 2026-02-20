@@ -16,8 +16,8 @@ pub use crate::object_vec::ObjectAsVec;
 /// fn main() -> io::Result<()> {
 ///     let data = r#"{"bool": true, "key": "123"}"#;
 ///     let value: Value = serde_json::from_str(&data)?;
-///     assert_eq!(value.get("bool"), &Value::Bool(true));
-///     assert_eq!(value.get("key"), &Value::Str("123".into()));
+///     assert_eq!(value.get("bool"), Some(&Value::Bool(true)));
+///     assert_eq!(value.get("key"), Some(&Value::Str("123".into())));
 ///     Ok(())
 /// }
 /// ```
@@ -83,8 +83,7 @@ impl<'ctx> Value<'ctx> {
     ///
     /// Returns `Value::Null` if the type of `self` does not match the type of
     /// the index, for example if the index is a string and `self` is an array
-    /// or a number. Also returns `Value::Null` if the given key does not exist
-    /// in the map or the given index is not within the bounds of the array.
+    /// or a number.
     ///
     /// # Examples
     ///
@@ -100,18 +99,16 @@ impl<'ctx> Value<'ctx> {
     /// "#;
     ///
     /// let data: Value = serde_json::from_str(json_obj).unwrap();
+    /// let y = data.get("x").unwrap().get("y").unwrap();
+    /// assert_eq!(y.get(0), Some(&Value::Str("z".into())));
+    /// assert_eq!(y.get(1), Some(&Value::Str("zz".into())));
+    /// assert_eq!(y.get(2), None);
     ///
-    /// assert_eq!(data.get("x").get("y").get(0), &Value::Str("z".into()));
-    /// assert_eq!(data.get("x").get("y").get(1), &Value::Str("zz".into()));
-    /// assert_eq!(data.get("x").get("y").get(2), &Value::Null);
-    ///
-    /// assert_eq!(data.get("a"), &Value::Null);
-    /// assert_eq!(data.get("a").get("b"), &Value::Null);
+    /// assert_eq!(data.get("a"), None);
     /// ```
     #[inline]
-    pub fn get<I: Index>(&self, index: I) -> &Value<'ctx> {
-        static NULL: Value = Value::Null;
-        index.index_into(self).unwrap_or(&NULL)
+    pub fn get<I: Index>(&self, index: I) -> Option<&Value<'ctx>> {
+        index.index_into(self)
     }
 
     /// Returns true if `Value` is Value::Null.
@@ -413,40 +410,40 @@ mod tests {
         });
 
         let value: Value = value.into();
-        assert_eq!(value.get("a"), &Value::Number(1i64.into()));
-        assert_eq!(value.get("b"), &Value::Str("2".into()));
-        assert_eq!(value.get("c").get(0), &Value::Number(3i64.into()));
-        assert_eq!(value.get("c").get(1), &Value::Number(4i64.into()));
-        assert_eq!(value.get("d").get("e"), &Value::Str("alo".into()));
+        assert_eq!(value.get("a"), Some(&Value::Number(1i64.into())));
+        assert_eq!(value.get("b"), Some(&Value::Str("2".into())));
+        assert_eq!(value.get("c").unwrap().get(0), Some(&Value::Number(3i64.into())));
+        assert_eq!(value.get("c").unwrap().get(1), Some(&Value::Number(4i64.into())));
+        assert_eq!(value.get("d").unwrap().get("e"), Some(&Value::Str("alo".into())));
     }
 
     #[test]
     fn number_test() -> io::Result<()> {
         let data = r#"{"val1": 123.5, "val2": 123, "val3": -123}"#;
         let value: Value = serde_json::from_str(data)?;
-        assert!(value.get("val1").is_f64());
-        assert!(!value.get("val1").is_u64());
-        assert!(!value.get("val1").is_i64());
+        assert!(value.get("val1").unwrap().is_f64());
+        assert!(!value.get("val1").unwrap().is_u64());
+        assert!(!value.get("val1").unwrap().is_i64());
 
-        assert!(!value.get("val2").is_f64());
-        assert!(value.get("val2").is_u64());
-        assert!(value.get("val2").is_i64());
+        assert!(!value.get("val2").unwrap().is_f64());
+        assert!(value.get("val2").unwrap().is_u64());
+        assert!(value.get("val2").unwrap().is_i64());
 
-        assert!(!value.get("val3").is_f64());
-        assert!(!value.get("val3").is_u64());
-        assert!(value.get("val3").is_i64());
+        assert!(!value.get("val3").unwrap().is_f64());
+        assert!(!value.get("val3").unwrap().is_u64());
+        assert!(value.get("val3").unwrap().is_i64());
 
-        assert!(value.get("val1").as_f64().is_some());
-        assert!(value.get("val2").as_f64().is_some());
-        assert!(value.get("val3").as_f64().is_some());
+        assert!(value.get("val1").unwrap().as_f64().is_some());
+        assert!(value.get("val2").unwrap().as_f64().is_some());
+        assert!(value.get("val3").unwrap().as_f64().is_some());
 
-        assert!(value.get("val1").as_u64().is_none());
-        assert!(value.get("val2").as_u64().is_some());
-        assert!(value.get("val3").as_u64().is_none());
+        assert!(value.get("val1").unwrap().as_u64().is_none());
+        assert!(value.get("val2").unwrap().as_u64().is_some());
+        assert!(value.get("val3").unwrap().as_u64().is_none());
 
-        assert!(value.get("val1").as_i64().is_none());
-        assert!(value.get("val2").as_i64().is_some());
-        assert!(value.get("val3").as_i64().is_some());
+        assert!(value.get("val1").unwrap().as_i64().is_none());
+        assert!(value.get("val2").unwrap().as_i64().is_some());
+        assert!(value.get("val3").unwrap().as_i64().is_some());
 
         Ok(())
     }
